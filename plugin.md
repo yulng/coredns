@@ -12,7 +12,7 @@ The main method that gets called is `ServeDNS`. It has three parameters:
 will return a SERVFAIL to the client. The response code tells CoreDNS if a *reply has been
 written by the plugin chain or not*. In the latter case CoreDNS will take care of that.
 
-CoreDNS treats:
+CoreDNS treats (see plugin.ClientWrite):
 
 * SERVFAIL (dns.RcodeServerFailure)
 * REFUSED (dns.RcodeRefused)

@@ -23,6 +23,9 @@ func init() {
 func setup(c *caddy.Controller) error {
 	zones, err := fileParse(c)
 	if err != nil {
+		if err == plugin.ErrOrigin {
+			return nil
+		}
 		return plugin.Error("file", err)
 	}
 
@@ -71,6 +74,9 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 		copy(origins, c.ServerBlockKeys)
 		args := c.RemainingArgs()
 		if len(args) > 0 {
+			if err := plugin.Origins(c, args); err != nil {
+				return Zones{}, err
+			}
 			origins = args
 		}
 

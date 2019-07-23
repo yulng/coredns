@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/caddyserver/caddy"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
@@ -99,11 +100,33 @@ func ClientWrite(rcode int) bool {
 	return true
 }
 
+// Origins returns nil if the c.ServerBlockKey[c.ServerBlockKeyIndex] is
+// contained as a subdomain (or equal) in the origins slice. If it can't be
+// found ErrOrigin will be returned. The ServerBlockKey names are Normalize-d
+// before comparing them to the fully qualifed names in origins
+func Origins(c *caddy.Controller, origins []string) error {
+	if len(c.ServerBlockKeys) == 0 {
+		return nil // needed because caddy.NewTestController doesn't set this, making all tests panic
+	}
+	key := Host(c.ServerBlockKeys[c.ServerBlockKeyIndex]).Normalize()
+	for i := range origins {
+		if dns.IsSubDomain(key, dns.Fqdn(origins[i])) {
+			return nil
+		}
+	}
+	return ErrOrigin
+}
+
 // Namespace is the namespace used for the metrics.
 const Namespace = "coredns"
 
 // TimeBuckets is based on Prometheus client_golang prometheus.DefBuckets
 var TimeBuckets = prometheus.ExponentialBuckets(0.00025, 2, 16) // from 0.25ms to 8 seconds
 
-// ErrOnce is returned when a plugin doesn't support multiple setups per server.
-var ErrOnce = errors.New("this plugin can only be used once per Server Block")
+var (
+	// ErrOnce is returned when a plugin doesn't support multiple setups per server.
+	ErrOnce = errors.New("this plugin can only be used once per Server Block")
+
+	// ErrOrigin is returned when a plugin is being setup, but specifies a more narrow set of origins.
+	ErrOrigin = errors.New("this plugin skipped the setup because the origin selection is more narrow")
+)
