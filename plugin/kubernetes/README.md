@@ -117,7 +117,7 @@ Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster
 `in-addr.arpa` `PTR` requests for `10.0.0.0/17` . Verify the existence of pods when answering pod
 requests.
 
-~~~ txt
+~~~ corefile
 10.0.0.0/17 cluster.local {
     kubernetes {
         pods verified
@@ -127,18 +127,22 @@ requests.
 
 Or you can selectively expose some namespaces:
 
-~~~ txt
-kubernetes cluster.local {
-    namespaces test staging
+~~~ corefile
+cluster.local {
+    kubernetes {
+        namespaces test staging
+    }
 }
 ~~~
 
 Connect to Kubernetes with CoreDNS running outside the cluster:
 
 ~~~ txt
-kubernetes cluster.local {
-    endpoint https://k8s-endpoint:8443
-    tls cert key cacert
+cluster.local {
+    kubernetes {
+        endpoint https://k8s-endpoint:8443
+        tls cert key cacert
+    }
 }
 ~~~
 
@@ -149,8 +153,8 @@ Also configured is an upstreamNameserver `8.8.8.8:53` that will be used for reso
 or `example.local`.
 
 ~~~ txt
-cluster.local:53 {
-    kubernetes cluster.local
+cluster.local {
+    kubernetes
 }
 example.local {
     forward . 10.100.0.10:53
@@ -163,7 +167,7 @@ example.local {
 
 The configuration above represents the following Kube-DNS stubDomains and upstreamNameservers configuration.
 
-~~~ txt
+~~~ yaml
 stubDomains: |
    {“example.local”: [“10.100.0.10:53”]}
 upstreamNameservers: |
@@ -176,26 +180,29 @@ The *kubernetes* plugin can be used in conjunction with the *autopath* plugin.  
 feature enables server-side domain search path completion in Kubernetes clusters.  Note: `pods` must
 be set to `verified` for this to function properly.
 
-    cluster.local {
-        autopath @kubernetes
-        kubernetes {
-            pods verified
-        }
+~~~ corefile
+cluster.local {
+    autopath @kubernetes
+    kubernetes {
+        pods verified
     }
+}
+~~~
 
 ## Federation
 
 The *kubernetes* plugin can be used in conjunction with the *federation* plugin.  Using this
 feature enables serving federated domains from the Kubernetes clusters.
 
-    cluster.local {
-        federation {
-            prod prod.example.org
-            staging staging.example.org
-        }
-        kubernetes
+~~~ txt
+cluster.local {
+    federation {
+        prod prod.example.org
+        staging staging.example.org
     }
-
+    kubernetes
+}
+~~~
 
 ## Wildcards
 
@@ -210,7 +217,8 @@ or the word "any"), then that label will match all values.  The labels that acce
  * multiple wildcards are allowed in a single query, e.g., `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
 
  For example, wildcards can be used to resolve all Endpoints for a Service as `A` records. e.g.: `*.service.ns.svc.myzone.local` will return the Endpoint IPs in the Service `service` in namespace `default`:
- ```
+
+```
 *.service.default.svc.cluster.local. 5	IN A	192.168.10.10
 *.service.default.svc.cluster.local. 5	IN A	192.168.25.15
 ```

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/coredns/coredns/core/dnsserver"
@@ -20,6 +21,7 @@ var contents = map[string]string{
 	"Kexample.org.+013+45330.key":     examplePub,
 	"Kexample.org.+013+45330.private": examplePriv,
 	"example.org.signed":              exampleOrg, // not signed, but does not matter for this test.
+	"conf.yaml":                       kubeconfig,
 }
 
 const (
@@ -39,6 +41,10 @@ PrivateKey: f03VplaIEA+KHI9uizlemUSbUJH86hPBPjmcUninPoM=
 //	# check-this-please
 // }
 // ~~~
+//
+// For some plugins, config is *added* to these snippets. This is current true for:
+//
+// * kubernetes plugin: set up some fake cluster config.
 func TestReadme(t *testing.T) {
 	port := 30053
 	caddy.Quiet = true
@@ -59,7 +65,7 @@ func TestReadme(t *testing.T) {
 		readme := filepath.Join(middle, d.Name())
 		readme = filepath.Join(readme, "README.md")
 
-		inputs, err := corefileFromReadme(readme)
+		inputs, err := corefileFromReadme(d.Name(), readme)
 		if err != nil {
 			continue
 		}
@@ -79,7 +85,7 @@ func TestReadme(t *testing.T) {
 
 // corefileFromReadme parses a readme and returns all fragments that
 // have ~~~ corefile (or ``` corefile).
-func corefileFromReadme(readme string) ([]*Input, error) {
+func corefileFromReadme(plugin, readme string) ([]*Input, error) {
 	f, err := os.Open(readme)
 	if err != nil {
 		return nil, err
@@ -109,6 +115,14 @@ func corefileFromReadme(readme string) ([]*Input, error) {
 
 		if corefile {
 			temp += line + "\n" // read newline stripped by s.Text()
+
+			// inject fake configs snippets
+			switch plugin {
+			case "kubernetes":
+				if strings.Contains(line, plugin+" {") {
+					temp += "kubeconfig conf.yaml test\n"
+				}
+			}
 		}
 	}
 
