@@ -18,8 +18,6 @@ import (
 	"github.com/caddyserver/caddy"
 	"github.com/miekg/dns"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	// Pull this in setting klog's output to stdout
 	"k8s.io/klog"
 
 	// Excluding azure because it is failing to compile
